@@ -12,9 +12,6 @@ def slack_token():
 def sc():
   return SlackClient(slack_token())
 
-def channa():
-  return channels()['general']
-
 def channels():
   chans = {}
   response = sc().api_call(
@@ -77,6 +74,17 @@ def parrot_wave(channel, msg):
       timestamp=msg['ts']
     )
 
+def emoji_bomb(channel, msg):
+  print(list(emoji_list()))
+  for e in list(emoji_list()):
+    sc().api_call(
+     "reactions.add",
+     channel=channel,
+     name=e,
+     timestamp=msg['ts']
+    )
+
+
 def main(argv):
   channel = ''
   command = ''
@@ -103,10 +111,10 @@ def main(argv):
     parrot_wave(channel, last_channel_msg(channel))
   elif command == "re":
     slap_random_emoji(channel, last_channel_msg(channel))
+  elif command == "eb":
+    emoji_bomb(channel, last_channel_msg(channel))
   else:
     print("command: %s is unknown" % command)
-
-print(__name__)
 
 if __name__ == "__main__":
   main(sys.argv[1:])
