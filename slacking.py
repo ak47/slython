@@ -1,13 +1,14 @@
 from slackclient import SlackClient
 import random
+import os
 import sys, getopt
+import re
 
-print("Number of arguments: %s arguments" % len(sys.argv))
-#print 'Argument List:', str(sys.argv)
+# print("Number of arguments: %s arguments" % len(sys.argv))
+# print('Argument List:', str(sys.argv))
 
-#slack_token = os.environ["SLACK_API_TOKEN"]
 def slack_token():
-  return "xoxp-3127633817-29010123941-101221187830-9492d5368bd19281865733e3f18c4205"
+  return os.environ["SLACK_API_TOKEN"]
 
 def sc():
   return SlackClient(slack_token())
@@ -23,6 +24,17 @@ def channels():
     chans[c['name']] = c['id']
   return chans
 
+def channel_messages(channel, count=None):
+  if count is None:
+    count = 5
+
+  messages = sc().api_call(
+    "channels.history",
+    channel=channel,
+    count=count
+  )
+  return messages
+
 def last_channel_msg(channel):
   lst_msg = sc().api_call(
     "channels.history",
@@ -30,6 +42,13 @@ def last_channel_msg(channel):
     count = 1
   )
   return lst_msg['messages'][0]
+
+def fetch_user(user_id):
+  user_info = sc().api_call(
+    "users.info",
+    user=user_id
+  )
+  return user_info
 
 def emoji_list():
   response = sc().api_call("emoji.list")
@@ -51,22 +70,18 @@ def slap_random_emoji(channel, msg):
     timestamp=msg['ts']
   )
 
-#response = sc.api_call(
-#  "chat.update",
-#  ts='1478278703.000138',
-#  channel="C033RJMQF",
-#  text="i am slackbot all your message are belong to me :snake:"
-#)
+def send_message(channel, message):
+  return sc().api_call(
+    "chat.postMessage",
+    text=message,
+    channel=channel,
+    as_user='true'
+  )
 
-#response = sc.api_call(
-#  "reactions.add",
-#  channel=channels['ideas'],
-#  name="cry",
-#  timestamp="1478281469.000027"
-#)
+def parrot_wave(channel, msg, dir):
+  rng = range(1,8) if dir == 'norm' else range(8,1)
 
-def parrot_wave(channel, msg):
-  for i in range(1,8):
+  for i in rng:
     sc().api_call(
       "reactions.add",
       channel=channel,
@@ -75,22 +90,31 @@ def parrot_wave(channel, msg):
     )
 
 def emoji_bomb(channel, msg):
-  print(list(emoji_list()))
-  for e in list(emoji_list()):
+  for i in range(0,20):
     sc().api_call(
      "reactions.add",
      channel=channel,
-     name=e,
+     name=random_emoji(),
      timestamp=msg['ts']
     )
-
 
 def main(argv):
   channel = ''
   command = ''
-  help_response = 'test.py -c <channel> -o <command>'
+  count = -1
+  stream = 'text'
+  help_response = """slacking.py -c <channel> -o <operation> [-n <count> -m <message>]
+  commands:
+    pw - parrot wave
+    pwr - parrot wave reverse
+    re - random emoji
+    eb - emoji bomb
+    cms - channel messages (opt arg: -n count - default 5)
+    ls - list channels
+    msg - send message (-m message)
+  """
   try:
-    opts, args = getopt.getopt(argv,"hc:o:",["channel=","command="])
+    opts, args = getopt.getopt(argv,"hc:o:n:m:",["channel=","operation=","count=","message="])
   except getopt.GetoptError:
     print(help_response)
     sys.exit(2)
@@ -100,19 +124,42 @@ def main(argv):
       print(help_response)
       sys.exit()
     elif opt in ("-c", "--channel"):
-      channel = channels()[arg]
-    elif opt in ("-o", "--command"):
+      m = re.search('(^@)', arg)
+      channel =  channels()[arg] if m is None else arg
+    elif opt in ("-o", "--operation"):
       command = arg
+    elif opt in ("-n", "--count"):
+      count = arg
+    elif opt == "-":
+      stream = sys.stdin
+    elif opt in ("-m", "--message"):
+      stream = arg
 
   print("Channel is %s" % channel)
-  print("Command is %s" % command)
+  print("Command is %s \n" % command)
 
   if command == "pw":
-    parrot_wave(channel, last_channel_msg(channel))
+    parrot_wave(channel, last_channel_msg(channel), 'norm')
+  elif command == "pwr":
+    parrot_wave(channel, last_channel_msg(channel), 'rev')
   elif command == "re":
     slap_random_emoji(channel, last_channel_msg(channel))
   elif command == "eb":
     emoji_bomb(channel, last_channel_msg(channel))
+  elif command == "cms":
+    num_msg = count if count > 0 else None
+    for msg in reversed(channel_messages(channel, num_msg)['messages']):
+      if 'user' in msg:
+        print("username: %s" % fetch_user(msg['user'])['user']['name'])
+      print("message: %s" % msg['text'])
+  elif command == "ls":
+    chans = channels()
+    print(chans)
+    for name in chans:
+      print(name)
+  elif command == "msg":
+    print(stream)
+    print(send_message(channel, stream))
   else:
     print("command: %s is unknown" % command)
 
