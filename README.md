@@ -16,3 +16,12 @@ slacking.py -c <channel> -o <operation> [-n <count> -m <message>]
     ls - list channels
     msg - send message (-m message)
 ```
+
+## Development
+I use pyenv installed via brew on Max OSX.
+Currently developed on
+```
+» python --version
+Python 3.5.1
+```
+
