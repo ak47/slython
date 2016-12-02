@@ -113,6 +113,7 @@ def main(argv):
     cms - channel messages (opt arg: -n count - default 5)
     ls - list channels
     msg - send message (-m message)
+    cmd - pipe command stdout to slack channel
   """
   try:
     opts, args = getopt.getopt(argv,"hc:o:n:m:",["channel=","operation=","count=","message="])
@@ -139,8 +140,8 @@ def main(argv):
     elif opt in ("-m", "--message"):
       stream = arg
 
-  print("Channel is %s" % channel)
-  print("Command is %s \n" % command)
+  #print("Channel is %s" % channel)
+  #print("Command is %s \n" % command)
 
   if command == "pw":
     parrot_wave(channel, last_channel_msg(channel), 'norm')
@@ -158,7 +159,6 @@ def main(argv):
       print("message: %s" % msg['text'])
   elif command == "ls":
     chans = channels()
-    print(chans)
     for name in chans:
       print(name)
   elif command == "msg":
