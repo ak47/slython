@@ -37,3 +37,4 @@ Currently developed on
 Python 3.5.1
 ```
 
+Slack Developer Kit for Python: https://slackapi.github.io/python-slackclient/
