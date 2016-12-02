@@ -1,6 +1,7 @@
 from slackclient import SlackClient
 import random
 import os
+import subprocess
 import sys, getopt
 import re
 
@@ -102,7 +103,7 @@ def main(argv):
   channel = ''
   command = ''
   count = -1
-  stream = 'text'
+  stream = None
   help_response = """slacking.py -c <channel> -o <operation> [-n <count> -m <message>]
   commands:
     pw - parrot wave
@@ -131,7 +132,10 @@ def main(argv):
     elif opt in ("-n", "--count"):
       count = arg
     elif opt == "-":
-      stream = sys.stdin
+      #stream = sys.stdin
+      for line in sys.stdin:
+        stream += len(line)
+
     elif opt in ("-m", "--message"):
       stream = arg
 
@@ -160,6 +164,9 @@ def main(argv):
   elif command == "msg":
     print(stream)
     print(send_message(channel, stream))
+  elif command == "cmd":
+    stdout = subprocess.check_output(stream.split(), stderr=subprocess.STDOUT, universal_newlines=True)
+    print(send_message(channel, stdout))
   else:
     print("command: %s is unknown" % command)
 
